@@ -1,7 +1,6 @@
 import numpy as np # type: ignore
 import pandas as pd # type: ignore
 import streamlit as st # type: ignore
-from PIL import Image # type: ignore
 import base64
 
 from typing import Any

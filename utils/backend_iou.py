@@ -208,7 +208,7 @@ def get_inter(box, gt):
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from PIL import Image
+
 def plot_rect(ax, box, color="CornflowerBlue", alpha=0.3, fc=True,linewidth=1.5):
     if fc:
         ec_ = "gray"

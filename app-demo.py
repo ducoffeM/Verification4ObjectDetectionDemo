@@ -3,6 +3,8 @@ import streamlit as st # type: ignore
 from streamlit_drawable_canvas import st_canvas # type: ignore
 import sys
 from PIL import Image # type: ignore
+import matplotlib.pyplot as plt # type: ignore
+
 sys.path.append(".")
 
 from utils.backend import load_gif
@@ -183,6 +185,7 @@ def iou_page():
         #fill_option = st.selectbox("Choisissez le type de remplissage", ["Transparent", "Non transparent"])
         #fill_option= st.sidebar.selectbox("Choisissez le type de remplissage", ["Transparent", "Non transparent"])
         init_image = Image.open("img/how-long-airport-runway-1.jpg")
+
         
         fill_option ="Transparent"
         # Définir la couleur de remplissage en fonction de l'option choisie
@@ -211,8 +214,9 @@ def iou_page():
         # Button to reset the canvas
         if st.button("Reset drawing"):
             st.rerun()
-        img_upload=Image.open(bg_image) if bg_image else init_image
+        img_upload = Image.open(bg_image) if bg_image else init_image
         img_width, img_height = img_upload.size
+
         canvas_result = st_canvas(
             fill_color=fill_color,  # Couleur du remplissage des rectangles
             stroke_width=3,#stroke_width,
