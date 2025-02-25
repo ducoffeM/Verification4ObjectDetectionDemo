@@ -3,7 +3,6 @@ import streamlit as st # type: ignore
 from streamlit_drawable_canvas import st_canvas # type: ignore
 import sys
 from PIL import Image # type: ignore
-import matplotlib.pyplot as plt # type: ignore
 
 sys.path.append(".")
 
