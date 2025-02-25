@@ -1,5 +1,5 @@
-streamlit
-streamlit-drawable-canvas==0.9
+streamlit==1.40.0
+streamlit-drawable-canvas==0.8
 streamlit-reveal-slides
 pandas
 Pillow
