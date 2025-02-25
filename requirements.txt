@@ -4,5 +4,5 @@ streamlit-reveal-slides
 pandas
 Pillow
 matplotlib
-streamlit-drawable-canvas=
+streamlit-drawable-canvas
 
