@@ -1,8 +1,7 @@
 streamlit
-streamlit-drawable-canvas
+streamlit-drawable-canvas==0.9
 streamlit-reveal-slides
 pandas
 Pillow
 matplotlib
-streamlit-drawable-canvas
 
