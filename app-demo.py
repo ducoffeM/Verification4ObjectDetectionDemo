@@ -31,10 +31,10 @@ def main():
             unsafe_allow_html=True,
         )
         #st.image("logos/all_logos.png")
-        st.image("logos/AIRBUS_RGB.png",width=300)
-        st.image("logos/logo-DEEL-BD.png",width=300)
-        st.image("logos/aniti_logo.png",width=300)
-        st.image("logos/onera_logo.png",width=300)
+        st.image("static/AIRBUS_RGB.png",width=300)
+        st.image("static/logo-DEEL-BD.png",width=300)
+        st.image("static/aniti_logo.png",width=300)
+        st.image("static/onera_logo.png",width=300)
 
     
     
