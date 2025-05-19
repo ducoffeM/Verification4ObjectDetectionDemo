@@ -32,9 +32,9 @@ def main():
         )
         #st.image("./static/AIRBUS_RGB.png",width=300)
         st.sidebar.image("https://raw.githubusercontent.com/ducoffeM/Verification4ObjectDetectionDemo/main/static/AIRBUS_RGB.png", width=300)
-        st.image("./static/logo-DEEL-BD.png",width=300)
-        st.image("./static/aniti_logo.png",width=300)
-        st.image("./static/onera_logo.png",width=300)
+        st.image("https://raw.githubusercontent.com/ducoffeM/Verification4ObjectDetectionDemo/main/static/logo-DEEL-BD.png",width=300)
+        st.image("https://raw.githubusercontent.com/ducoffeM/Verification4ObjectDetectionDemo/main/static/aniti_logo.png",width=300)
+        st.image("https://raw.githubusercontent.com/ducoffeM/Verification4ObjectDetectionDemo/main/static/onera_logo.png",width=300)
 
     
     
