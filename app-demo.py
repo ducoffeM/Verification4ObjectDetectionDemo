@@ -30,7 +30,8 @@ def main():
             '<h2>A collaboration between</h2>',
             unsafe_allow_html=True,
         )
-        st.image("./static/AIRBUS_RGB.png",width=300)
+        #st.image("./static/AIRBUS_RGB.png",width=300)
+        st.sidebar.image("https://github.com/ducoffeM/Verification4ObjectDetectionDemo/blob/main/static/AIRBUS_RGB.png", width=300)
         st.image("./static/logo-DEEL-BD.png",width=300)
         st.image("./static/aniti_logo.png",width=300)
         st.image("./static/onera_logo.png",width=300)
