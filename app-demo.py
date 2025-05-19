@@ -30,11 +30,10 @@ def main():
             '<h2>A collaboration between</h2>',
             unsafe_allow_html=True,
         )
-        #st.image("logos/all_logos.png")
-        st.image("static/AIRBUS_RGB.png",width=300)
-        st.image("static/logo-DEEL-BD.png",width=300)
-        st.image("static/aniti_logo.png",width=300)
-        st.image("static/onera_logo.png",width=300)
+        st.image("./static/AIRBUS_RGB.png",width=300)
+        st.image("./static/logo-DEEL-BD.png",width=300)
+        st.image("./static/aniti_logo.png",width=300)
+        st.image("./static/onera_logo.png",width=300)
 
     
     
