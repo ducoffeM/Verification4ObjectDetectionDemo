@@ -1,7 +1,10 @@
+from PIL import Image
 import numpy as np # type: ignore
 import pandas as pd # type: ignore
 import streamlit as st # type: ignore
 import base64
+import random
+import re
 
 from typing import Any
 
@@ -113,6 +116,81 @@ colors = {
     "pink": (255, 192, 203, 1),
     "brown": (165, 42, 42, 1),
 }
+
+def display_images(image_paths:list,key_button,title="",option=1):
+    # Load images
+    images = [Image.open(img_path) for img_path in image_paths]
+
+    # Resize images (if necessary) to ensure they are the same size
+    min_width = min(img.width for img in images)
+    min_height = min(img.height for img in images)
+    images = [img.resize((min_width, min_height)) for img in images]
+
+    # Convert images to numpy arrays
+    image_arrays = [np.array(img) for img in images]
+
+    # Display images sequentially with a "Next" button
+    if title:
+        st.title(title)
+
+    # Initialize index for tracking current image
+    index = st.session_state.get(f'image_index_{key_button}', 0)
+
+    # Display current image
+    st.image(image_arrays[index], width='stretch')#caption=image_paths[index]
+    import time
+    # Button to go to the next image
+    if st.button(f'Next {option}',key=f'next_button_{key_button}_{index}'):
+        index = (index + 1) % len(images)  # Loop back to start if at the end
+        st.session_state[f'image_index_{key_button}'] = index  # Update session state
+        #time.sleep(1)
+   
+    if st.button(f'Before {option}',key=f'next_before_{key_button}_{index}'):
+        index = max((index - 1),0) % len(images)  # Loop back to start if at the end
+        st.session_state[f'image_index_{key_button}'] = index  # Update session state
+        #time.sleep(1)
+    
+    st.markdown("--------")
+   
+    
+    """
+    # Clear session state upon request
+    if st.button('Clear Session State'):
+        st.session_state.pop('image_index', None)
+    """
+
+def generate_random_colorname(last_colors,alpha=.3):
+    # Create a set of available colors excluding those in last_colors
+    available_colors = {k: v for k, v in colors.items() if k not in last_colors}
+    
+    # Check if there are any available colors left
+    if not available_colors:
+        raise ValueError("No available colors left to choose from.")
+    
+    # Select a random color from the available options
+    random_color_name = random.choice(list(available_colors.keys()))
+    rgba = available_colors[random_color_name]
+    
+    # Format RGBA string
+    rgba_format = f"rgba({rgba[0]}, {rgba[1]}, {rgba[2]}, {alpha})"
+    stroke_color= f"rgba({rgba[0]}, {rgba[1]}, {rgba[2]}, {rgba[3]})"
+    return random_color_name, rgba_format,stroke_color
+
+def find_color_name(rgba_string):
+    # Use regex to extract RGBA values from the string
+    match = re.match(r'rgba\((\d+), (\d+), (\d+), (\d+(?:\.\d+)?)\)', rgba_string)
+    if match:
+        r, g, b, a = map(float, match.groups())  # Convert to float
+        rgba = (int(r), int(g), int(b), a)  # Construct the RGBA tuple
+    else:
+        return "Invalid RGBA format"
+
+    # Check if the given RGBA matches any color in the dictionary
+    for color_name, color_value in colors.items():
+        if color_value == rgba:
+            return color_name
+    return "Color not found"
+    
 
 
 

@@ -3,14 +3,22 @@ import streamlit as st # type: ignore
 from streamlit_drawable_canvas import st_canvas # type: ignore
 import sys
 from PIL import Image # type: ignore
+import random
+import numpy as np
+
 
 sys.path.append(".")
 
-from utils.backend import load_gif
+from utils.backend import load_gif, display_images, generate_random_colorname, find_color_name, compute_corners
 
 from utils.backend_iou import (compute_box_corners,
                                compute_extension,
                                run_and_draw)
+
+from utils.backend_nms import (compute_lower_upper_matrices,
+                               formal_nms,
+                               plot_final_results, 
+                               map_boxes_to_plot)
 
 def main():
     if "button_id" not in st.session_state:
@@ -20,6 +28,7 @@ def main():
     PAGES = {
         "About": about,
         "IoU": iou_page,
+        "NMS": nms_page,
         }
     page = st.sidebar.selectbox("Tabs:", options=list(PAGES.keys()))
     PAGES[page]()
@@ -314,8 +323,275 @@ def iou_page():
                         img=Image.open(bg_image) if bg_image else init_image
                         iou_min,iou_max=run_and_draw(ext_interval,gt_corners,image=img)
                         st.balloons()
-                  
+def nms_page():
+    st.sidebar.header("Menu")
+    st.title("Non-Maximum Suppression (NMS)")
 
+    tab_names = [
+    "Introduction",
+    "Demo"
+    #"Plot"
+    ]
+    (
+        tab_init,
+        tab_demo
+        #tab_demo_affichage,
+    ) = st.tabs(tab_names)
+
+    d_bbox=[]
+    selected_colors=[]
+    with tab_init:
+        st.markdown("### Non-Maximum Suppression (NMS) Algorithm")
+        markdown_code = """
+        Input: 
+        B = {b_1, ..., b_N}: the list of initial detection boxes
+        S = {s_1, ..., s_N}: contains corresponding detection scores
+        N_t: the NMS threshold
+
+        begin
+            D <- {}
+            while B != empty do
+                m <- argmax S
+                M <- b_m
+                D <- D ∪ M; B <- B - M
+                for b_i in B do
+                    if iou(M, b_i) ≥ N_t then
+                        B <- B - b_i; S <- S - s_i
+                end
+            end
+            return D, S
+        end
+        """
+        st.code(markdown_code, language='python')
+        st.markdown("### Example of the NMS Algorithm Execution")
+        #st.image("img/NMS-example.gif")
+        image_paths = [f'img/slides_nms/Verification of the Non-Maximum Suppression ({i}).jpg' for i in range(1,15)]
+        display_images(image_paths,title="",key_button="nms",option=1)
+
+        st.header("Pain points for formal NMS")
+        markdown_code = """
+        Input: 
+        B = {b_1, ..., b_N}: the list of initial detection boxes
+        S = {s_1, ..., s_N}: contains corresponding detection scores
+        N_t: the NMS threshold
+       
+        begin
+            D <- {}
+            while B != empty do
+                #m <- argmax S
+                M <- b_m
+                D <- D ∪ M; B <- B - M
+                for b_i in B do
+                    #if iou(M, b_i) ≥ N_t then
+                        #B <- B - b_i; S <- S - s_i
+                end
+            end
+            return D, S
+        end
+        """
+        #st.markdown(markdown_code)
+        st.code(markdown_code, language='markdown')
+        st.markdown("### Illustrating the pain points for formal NMS")
+        #st.image("img/argmax-extension.gif")use_column_width
+        #st.image("img/filtering-extension.gif")
+        image_paths = [f'img/slides_nms/Verification of the Non-Maximum Suppression ({i}).jpg' for i in range(15,21)]
+        display_images(image_paths,title="",key_button="formal_nms",option=2)
+    
+   
+    with tab_demo:
+        st.title("Hands on ! Time to give it a try")
+        st.markdown(
+        """
+        For a better understanding of the NMS, you can use our demo.
+
+        **Demo Overview** 
+        In this demo, you will:
+        1. Load an Image: Select an image containing a single object.
+        2. Draw predicted box's domains (each new box domain will have a new color)
+        3. Provide confidence score domains (enter lower and upper bound per new domain)
+        """
+        )
+        # Initialise session state 
+        #if 'step' not in st.session_state:
+        st.session_state.step = 1
+        st.session_state.selected_colors = []
+        if st.button("Reset drawing"):
+            st.session_state.data = []
+            st.session_state.d_bbox = []
+            st.session_state.selected_colors = []
+            st.rerun()
+            
+        
+        init_image = Image.open("img/cats.jpeg")#("img/how-long-airport-runway-1.jpg")
+        fill_option ="Transparent"
+        
+        # Définir la couleur de remplissage en fonction de l'option choisie
+        if fill_option == "Transparent":
+            alpha = 0.3 #transparent
+        else:
+            alpha = 1.0 #opaque
+
+        # Specify canvas parameters in application
+        drawing_mode = "rect"
+        stroke_width = 30#st.sidebar.slider("Stroke width: ", 1, 30, 3)#30
+        #stroke_color = st.sidebar.color_picker("Stroke color hex: ")
+        bg_color = st.sidebar.color_picker("Background color hex: ", "#eee")
+        bg_image = st.sidebar.file_uploader("Test image:", type=["png", "jpg"])
+        realtime_update = st.sidebar.checkbox("Update in realtime", True)
+        random_color_name, rgba_color_format,rgba_stroke_color=generate_random_colorname(st.session_state.selected_colors)
+        st.session_state.selected_colors.append(random_color_name)
+
+        st.write('Click and drag to draw rectangles on the canvas below:')
+        
+           # Create a canvas component
+        img_upload=Image.open(bg_image) if bg_image else init_image
+        canvas_result = st_canvas(
+            fill_color=rgba_color_format,#"rgba(255, 165, 0, 0.3)"
+            stroke_width=stroke_width,
+            stroke_color=rgba_stroke_color,
+            background_color=bg_color,
+            background_image=img_upload,
+            update_streamlit=realtime_update,
+            height=400,#adapt it to take image size bg_image
+            width=600,
+            drawing_mode=drawing_mode,
+            display_toolbar=st.sidebar.checkbox("Display toolbar", True),
+            key="full_app",
+        )
+        if 'data' not in st.session_state:
+            st.session_state.data = []
+        if 'd_bbox' not in st.session_state:
+            st.session_state.d_bbox = []
+        if 'selected_colors' not in st.session_state:
+            st.session_state.selected_colors = []
+
+        if canvas_result.json_data is not None:
+            objects = canvas_result.json_data["objects"]
+            min_confidence_scores = np.array([])
+            max_confidence_scores = np.array([])
+            
+            if objects:
+                last_object = objects[-1]
+                objects = pd.json_normalize(objects)
+                random_color_name, rgba_color_format,rgba_stroke_color=generate_random_colorname(st.session_state.selected_colors)
+
+                #if not objects.empty:
+                lower_bound = st.number_input('Enter Lower Bound for Score:', value=0.0, step=0.1,min_value=0.,max_value=1.)#objectness lower
+                upper_bound = st.number_input('Enter Upper Bound for Score:', value=1.0, step=0.1,min_value=0.,max_value=1.)#objectness upper
+              
+                submit_button = st.button(label='Add confidence interval')
+                undo_button = st.button(label='Undo last box')
+               
+                if submit_button:
+                    rgba=objects["stroke"].values[-1]#.astype("str")
+                    box_color=find_color_name(rgba)
+                   
+                    discard_columns=[col for col in objects.columns if col not in ["left","top","width","height","bottom"]]
+                    dipslay_df=objects.drop(discard_columns,axis=1)
+                    for col in dipslay_df.select_dtypes(include=["object"]).columns:
+                        dipslay_df[col] = dipslay_df[col].astype("str")
+                    rect_coords=compute_corners(dipslay_df.iloc[[-1]])
+                    new_entry = {
+                        "stroke":box_color,#f'background-color: {color_hex}; color: black',#box_color,
+                        "left": rect_coords["left"].values[0][0],
+                        "top": rect_coords["top"].values[0][0],
+                        "bottom": rect_coords["bottom"].values[0],#rect_coords["bottom_left"].values[0][0],
+                        "right": rect_coords["right"].values[0],#rect_coords["bottom_right"].values[0][1],
+                        "width": rect_coords["width"].values[0],
+                        "height": rect_coords["height"].values[0],
+                        "min_confidence_score": lower_bound,
+                        "max_confidence_score": upper_bound
+                    }
+                    
+                    st.session_state.data.append(new_entry)
+                   
+                    if not objects.empty:
+                        # Keep only the last rectangle
+                        dipslay_df = dipslay_df.iloc[[-1]]  
+                        gt_corners=compute_box_corners(dipslay_df)  
+                        d_bbox.append(gt_corners)
+                        st.session_state.d_bbox.append(gt_corners)
+                
+                
+                if undo_button:
+                    if st.session_state.data:
+                        st.session_state.data.pop()
+                    if st.session_state.d_bbox:
+                        st.session_state.d_bbox.pop()
+                
+                confid_df = pd.DataFrame({
+                    "color": [i["stroke"] for i in st.session_state.data],
+                    "left": [i["left"] for i in st.session_state.data],
+                    "bottom": [i["bottom"] for i in st.session_state.data],
+                    "top": [i["top"] for i in st.session_state.data],
+                    "width": [i["width"] for i in st.session_state.data],
+                    "height": [i["height"] for i in st.session_state.data],
+                    
+                    "min_confidence_score": [round(i["min_confidence_score"],2) for i in st.session_state.data],
+                    "max_confidence_score": [round(i["max_confidence_score"],2) for i in st.session_state.data]})
+                st.table(confid_df)
+                if len(st.session_state.data) > 0:
+                    current_min_scores = np.array([round(i["min_confidence_score"], 2) for i in st.session_state.data])
+                    current_max_scores = np.array([round(i["max_confidence_score"], 2) for i in st.session_state.data])
+                    
+                    # Concatenate new scores to the existing arrays
+                    min_confidence_scores = np.concatenate((min_confidence_scores, current_min_scores))
+                    max_confidence_scores = np.concatenate((max_confidence_scores, current_max_scores))
+
+        def next_step():
+            st.session_state.step += 1
+
+        if st.button("Go to step 2",on_click=next_step):
+            if not len(canvas_result.json_data["objects"]):
+                #st.write("Please draw a ground truth bounding box first")
+                st.markdown(
+                """
+                ```
+                Please draw a bounding box domains
+                ```
+                """
+                )
+            else:
+                st.session_state.page = 2
+
+        # Page 2: Tracer deux rectangles et récupérer les coordonnées respectives
+        if "page" in st.session_state and st.session_state.page == 2:
+            st.title("Compute Best and Worst IoU Values for Bounding Box Overlaps")
+    
+            if canvas_result.json_data is not None:
+                n=len(st.session_state.data)
+                st.write("Total number of selected boxes  ",n)                
+                matrix_min,matrix_max=compute_lower_upper_matrices(stroke_width)
+                
+                df_iou_min = pd.DataFrame(matrix_min)#, columns=[box {i} for i in range(n)])
+                st.header("Minimum IoU Between Bounding Boxes")
+                st.table(df_iou_min)
+    
+                st.header("Maximum IoU Between Bounding Boxes")
+                df_iou_max = pd.DataFrame(matrix_max)#, columns=[box {i} for i in range(n)])
+                st.table(df_iou_max)
+                # Set the title of the app
+                st.title("Threshold Input for NMS Filtering")
+
+                # Create a number input for the threshold value
+                threshold_nms = st.number_input("Enter the threshold value for non-maximum suppression:", 
+                                            min_value=0.0, 
+                                            max_value=1.0, 
+                                            value=0.5, 
+                                            step=0.01)
+                threshold_nms = round(threshold_nms,2)
+                #call formal NMS function, store results and pass it to demo tab
+                if st.button("Run NMS",on_click=next_step):
+                    boxes,opt_boxes = formal_nms(confidence_min=min_confidence_scores,
+                                                confidence_max=max_confidence_scores,
+                                                iou_matrix_min=matrix_min,
+                                                iou_matrix_max=matrix_max,
+                                                threshold=threshold_nms)
+                    st.header(f"Results of Non-Maximum Suppression with threshold value {threshold_nms}")
+                    #if st.button("Plot NMS output boxes",on_click=next_step):
+                    boxes_to_map= map_boxes_to_plot(boxes)
+                    plot_final_results(st.session_state.data,img_upload,boxes_map=boxes_to_map)
+ 
 
 if __name__ == "__main__":
     st.set_page_config(
